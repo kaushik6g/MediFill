@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "466309086754",
+    "project_id": "medifill-ff219",
+    "storage_bucket": "medifill-ff219.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466309086754:android:93dbf348b9360bd4b3547b",
+        "android_client_info": {
+          "package_name": "com.medifill.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwtvkfA8DsXVn4Q0I1HVYK5m821tfWrus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
