@@ -7,23 +7,29 @@ The application leverages AI-powered Optical Character Recognition (OCR) to auto
 With automated notifications and smart tracking, Medi-Fill helps users maintain better medication adherence and avoid using expired medicines.
 
 🚀 Key Features
+
 📷 AI Medicine Label Scanning
 
 Users can scan medicine labels using their phone camera. The system uses Google Vision API OCR to automatically extract medicine information.
 
 ⏳ Expiry Date Monitoring
+
 Tracks medicine expiry dates and alerts users before medicines expire to prevent unsafe consumption.
 
 🔔 Smart Refill Reminders
+
 Notifies users when medicines are running low and need to be refilled.
 
 ⚠️ Drug Interaction Detection
+
 Integrated with OpenFDA API to identify potentially harmful interactions between medicines.
 
 🔐 Secure User Authentication
+
 User accounts and authentication are managed using Firebase Authentication.
 
 📱 Real-time Notifications
+
 Uses Firebase Cloud Messaging to send timely alerts for expiry dates and refills.
 
 📦 Installation
@@ -35,5 +41,6 @@ Navigate into the project folder
 Install dependencies
 
 Start the server using the command
-npx expo start
+
+"npx expo start"
 
