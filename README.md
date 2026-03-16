@@ -6,7 +6,7 @@ The application leverages AI-powered Optical Character Recognition (OCR) to auto
 
 With automated notifications and smart tracking, Medi-Fill helps users maintain better medication adherence and avoid using expired medicines.
 
-🚀 Key Features
+🚀 Key Features..
 
 📷 AI Medicine Label Scanning
 
