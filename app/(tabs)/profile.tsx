@@ -46,7 +46,7 @@ import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../../constants
 import TimePickerModal from '../../components/TimePickerModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type View =
+type ProfileView =
   | 'main'
   | 'profiles'
   | 'notifications'
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
   } = useMedicineContext();
   const { user, profile, signOut, updateDisplayName } = useAuth();
 
-  const [currentView, setCurrentView] = useState<View>('main');
+  const [currentView, setCurrentView] = useState<ProfileView>('main');
 
   // Modals
   const [showNameModal, setShowNameModal] = useState(false);
@@ -816,7 +816,7 @@ export default function ProfileScreen() {
     </Animated.View>
   );
 
-  const viewTitles: Record<View, string> = {
+  const viewTitles: Record<ProfileView, string> = {
     main: 'Profile',
     profiles: 'Manage Profiles',
     notifications: 'Notifications',
