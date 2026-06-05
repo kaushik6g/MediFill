@@ -1,0 +1,331 @@
+﻿===== document.xml =====
+PROJECT TITLE
+21IPE315P - CLOUD PRODUCT AND PLATFORM ENGINEERING
+ PROJECT REPORT
+Submitted by
+STUDENT1 NAME [REG NUM]
+STUDENT2 NAME [REG NUM]
+Under the Guidance of
+(GUIDE 
+NAME )
+(Designation, Department)
+in partial fulfillment of the requirements for the degree of
+BACHELOR OF TECHNOLOGY
+in
+COMPUTER SCIENCE ENGINEERING
+with specialization in (SPECIALIZATION NAME)
+DEPARTMENT OF COMPUTATIONAL INTELLIGENCE COLLEGE OF ENGINEERING AND TECHNOLOGY
+SRM INSTITUTE OF SCIENCE AND TECHNOLOGY
+KATTANKULATHUR- 603 203
+MAY  2026
+SRM INSTITUTE OF SCIENCE AND TECHNOLOGY KATTANKULATHUR â€“ 603 203
+BONAFIDE CERTIFICATE
+Certified that 
+a project report for 
+21IPE315P - Cloud Product and Platform Engineering
+ course 
+titled â€œPROJECT 
+TITLE â€
+ is the bonafide work of â€œSTUDENT1 NAME [REG NUM], STUDENT2 NAME [REG NUM]â€ who carried out the project work under my supervision. Certified further, that to the best of my knowledge the work reported herein does not form any other project report or dissertation 
+on the basis of
+ which a degree or award was conferred on an earlier 
+occasion
+ on this or any other candidate.
+SIGNATURE
+Dr.
+M.Sivakumar
+Course Faculty
+Assistant 
+Professor 
+DEPARTMENT OF
+NETWORKING AND COMMUNICATIONS
+SIGNATURE
+DR. R. ANNIE UTHRA
+PROFESSOR &HEAD
+DEPARTMENT OF
+NETWORKING AND COMMUNICATIONS
+ABSTRACT
+Provide a summary of the project including objectives, tools used, implementation, and outcomes.
+Table of Contents
+ABSTRACT
+v
+TABLE OF CONTENTS
+vi
+LIST OF FIGURES
+vii
+LIST OF TABLES
+viii
+ABBREVIATIONS
+ ix
+C
+hapter
+N
+umber
+Title
+Page Number
+1
+INTRODUCTION
+1.1
+Project Background
+1.2
+Problem Statement
+1.3
+Need for the Project
+1.4
+Objectives
+1.5
+Scope of the Project
+1.6
+Organization of the Report
+2
+LITERATURE SURVEY / EXISTING SYSTEM
+2.1
+Traditional Development Process
+2.2
+Challenges in Existing Manual Systems
+2.3
+DevOps and Agile Methodologies
+2.4
+Review of Tools
+3
+REQUIREMENT ANALYSIS
+3.1
+Functional Requirements
+3.2
+Non-Functional Requirements
+3.3
+Hardware Requirements
+3.4
+Software Requirements
+4
+SYSTEM DESIGN
+4.1
+Overall Architecture
+4.2
+Workflow Diagram
+4.3
+Database Design
+4.4
+CI/CD Pipeline Design
+5
+PROJECT SETUP AND CONFIGURATION
+5.1
+Jira Setup
+5.2
+Bitbucket / GitHub Setup
+5.3
+Jenkins Setup
+5.4
+MLflow
+ Setup
+6
+IMPLEMENTATION
+6.1
+Module Development
+6.2
+Source Code Management
+6.3
+Jenkins Pipeline Implementation
+6.4
+ML Model Training and Logging
+6.5
+Deployment Process
+6.6
+Screenshots of Configurations
+7
+TESTING
+7.1
+Testing Strategy
+7.2
+Unit Testing
+7.3
+Integration Testing
+7.4
+System Testing
+7.5
+CI Pipeline Testing
+7.6
+Performance Testing
+7.7
+Defect Tracking using Jira
+7.8
+Test Cases Table
+8
+RESULTS AND DISCUSSION
+8.1
+Automation Results
+8.2
+Build Success Rate
+8.3
+Reduced Deployment Time
+8.4
+Collaboration Improvements
+8.5
+MLflow
+ Experiment Tracking Results
+9
+CHALLENGES FACED
+10
+CONCLUSION
+11
+FUTURE ENHANCEMENTS
+12
+REFERENCES
+13
+APPENDICES
+LIST OF FIGURES
+LIST OF TABLES
+ABBREVIATIONS
+CHAPTER 1
+INTRODUCTION
+1.1 Project Background
+Overview of software development lifecycle, DevOps practices, CI/CD, version control, and ML lifecycle management.
+1.2 Problem Statement
+Challenges in manual deployment, code versioning, task tracking, testing, and model management.
+1.3 Need for the Project
+Need for automation, collaboration, faster releases, and traceability.
+1.4 Objectives
+Configure Jira for project tracking 
+Setup Bitbucket/GitHub repository 
+Configure Jenkins pipeline 
+Implement 
+MLflow
+ for model lifecycle 
+Develop and test the application 
+Automate build and deployment process 
+1.5 Scope of the Project
+1.6 Organization of the Report
+CHAPTER 2
+LITERATURE SURVEY / EXISTING SYSTEM
+2.1 Traditional Development Process
+2.2 Challenges in Existing Manual Systems
+2.3 DevOps and Agile Methodologies
+2.4 Review of Tools
+Jira 
+Bitbucket 
+GitHub 
+Jenkins 
+MLflow
+CHAPTER 3
+REQUIREMENT ANALYSIS
+3.1 Functional Requirements
+User story creation 
+Code 
+commit
+ and version control 
+Automated build process 
+Model experiment tracking
+Testing reports 
+3.2 Non-Functional Requirements
+Scalability 
+Reliability 
+Security 
+Performance 
+3.3 Hardware Requirements
+3.4 Software Requirements
+CHAPTER 4
+SYSTEM DESIGN
+4.1 Overall Architecture
+4.2 Workflow Diagram
+Jira â†’ GitHub/Bitbucket â†’ Jenkins â†’ Build/Test â†’ Deployment â†’ 
+MLflow
+ Tracking
+4.3 Database Design (if applicable)
+4.4 CI/CD Pipeline Design
+CHAPTER 5
+PROJECT SETUP AND CONFIGURATION
+5.1 Jira Setup
+Account creation 
+Project creation 
+Scrum/Kanban board setup 
+User stories and sprint planning 
+Task assignment 
+Workflow customization 
+5.2 Bitbucket / GitHub Setup
+Repository creation 
+Branching strategy 
+Access control 
+Pull request workflow 
+Commit
+ standards 
+5.3 Jenkins Setup
+Installation and plugins 
+Node configuration 
+Job creation 
+Webhook integration 
+Pipeline script creation 
+5.4 
+MLflow
+ Setup
+Installation 
+Tracking server setup 
+Experiment creation 
+Artifact storage 
+Model registry 
+CHAPTER 6
+IMPLEMENTATION
+6.1 Module Development
+6.2 Source Code Management
+6.3 Jenkins Pipeline Implementation
+6.4 ML Model Training and Logging
+6.5 Deployment Process
+6.6 Screenshots of Configurations
+CHAPTER 7
+TESTING
+7.1 Testing Strategy
+7.2 Unit Testing
+7.3 Integration Testing
+7.4 System Testing
+7.5 CI Pipeline Testing
+7.6 Performance Testing
+7.7 Defect Tracking using Jira
+7.8 Test Cases Table
+Test Case ID
+Module
+Input
+Expected Output
+Result
+CHAPTER 8
+RESULTS AND DISCUSSION
+8.1 Automation Results
+8.2 Build Success Rate
+8.3 Reduced Deployment Time
+8.4 Collaboration Improvements
+8.5 
+MLflow
+ Experiment Tracking Results
+CHAPTER 9
+CHALLENGES FACED
+Integration issues 
+Plugin compatibility 
+Access permission errors 
+Build failures 
+Testing bottlenecks 
+CHAPTER 10
+CONCLUSION
+Summarize achievements and outcomes.
+CHAPTER 11
+FUTURE ENHANCEMENTS
+Docker integration 
+Kubernetes deployment 
+SonarQube integration 
+Advanced monitoring 
+Auto scaling 
+REFERENCES
+Use IEEE / APA format.
+APPENDICES
+Appendix 
+A
+ â€“ Jira Workflow
+Appendix B â€“ Git Commands
+Appendix 
+C
+ â€“ 
+Jenkinsfile
+Appendix D â€“ Test Cases
+Appendix E â€“ Screenshots
+Appendix 
+F
+ â€“ 
+Coding 
+

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2200" viewBox="0 0 1200 2200" role="img" aria-labelledby="title desc">
+  <title id="title">MediFill Workflow Vertical Diagram</title>
+  <desc id="desc">User Login to Pharmacy Assistance vertical process flow</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eef6ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#1f6feb" flood-opacity="0.18"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6feb"/>
+    </marker>
+    <style>
+      .title { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 50px; font-weight: 700; fill: #0b1f3a; }
+      .subtitle { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 22px; fill: #335b8e; }
+      .box { fill: #e8f3ff; stroke: #1f6feb; stroke-width: 3; rx: 20; ry: 20; filter: url(#shadow); }
+      .text { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 34px; font-weight: 600; fill: #0b1f3a; text-anchor: middle; dominant-baseline: middle; }
+      .arrow { stroke: #1f6feb; stroke-width: 6; fill: none; marker-end: url(#arrow); }
+      .stepNo { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 22px; font-weight: 700; fill: #1f6feb; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="2200" fill="url(#bg)"/>
+
+  <text x="600" y="85" class="title">MediFill Workflow</text>
+  <text x="600" y="125" class="subtitle">Cloud Product and Platform Engineering Process Flow</text>
+
+  <g transform="translate(0, 180)">
+    <rect class="box" x="210" y="0" width="780" height="130"/>
+    <text class="stepNo" x="600" y="-14">Step 1</text>
+    <text class="text" x="600" y="65">User Login</text>
+
+    <line class="arrow" x1="600" y1="145" x2="600" y2="210"/>
+
+    <rect class="box" x="210" y="225" width="780" height="130"/>
+    <text class="stepNo" x="600" y="211">Step 2</text>
+    <text class="text" x="600" y="290">Auth Validation</text>
+
+    <line class="arrow" x1="600" y1="370" x2="600" y2="435"/>
+
+    <rect class="box" x="210" y="450" width="780" height="130"/>
+    <text class="stepNo" x="600" y="436">Step 3</text>
+    <text class="text" x="600" y="515">Home Dashboard</text>
+
+    <line class="arrow" x1="600" y1="595" x2="600" y2="660"/>
+
+    <rect class="box" x="210" y="675" width="780" height="150"/>
+    <text class="stepNo" x="600" y="661">Step 4</text>
+    <text class="text" x="600" y="740">Add Medicine (Manual/OCR)</text>
+
+    <line class="arrow" x1="600" y1="840" x2="600" y2="905"/>
+
+    <rect class="box" x="210" y="920" width="780" height="150"/>
+    <text class="stepNo" x="600" y="906">Step 5</text>
+    <text class="text" x="600" y="985">Store Locally + Sync to Cloud</text>
+
+    <line class="arrow" x1="600" y1="1085" x2="600" y2="1150"/>
+
+    <rect class="box" x="210" y="1165" width="780" height="130"/>
+    <text class="stepNo" x="600" y="1151">Step 6</text>
+    <text class="text" x="600" y="1230">Schedule Notifications</text>
+
+    <line class="arrow" x1="600" y1="1310" x2="600" y2="1375"/>
+
+    <rect class="box" x="210" y="1390" width="780" height="130"/>
+    <text class="stepNo" x="600" y="1376">Step 7</text>
+    <text class="text" x="600" y="1455">Generate Alerts</text>
+
+    <line class="arrow" x1="600" y1="1535" x2="600" y2="1600"/>
+
+    <rect class="box" x="210" y="1615" width="780" height="130"/>
+    <text class="stepNo" x="600" y="1601">Step 8</text>
+    <text class="text" x="600" y="1680">Track Adherence</text>
+
+    <line class="arrow" x1="600" y1="1760" x2="600" y2="1825"/>
+
+    <rect class="box" x="210" y="1840" width="780" height="130"/>
+    <text class="stepNo" x="600" y="1826">Step 9</text>
+    <text class="text" x="600" y="1905">Pharmacy Assistance</text>
+  </g>
+</svg>
