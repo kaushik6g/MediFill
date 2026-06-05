@@ -11,11 +11,11 @@ import {
   Alert,
   ActivityIndicator,
   TextInputProps,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import {
-  Pill,
   Mail,
   Lock,
   User,
@@ -187,11 +187,11 @@ export default function AuthScreen() {
         >
           {/* ── Header strip ── */}
           <Animated.View entering={FadeIn.duration(600)} style={styles.headerStrip}>
-            <View style={styles.logoRing}>
-              <View style={styles.logoInner}>
-                <Pill size={30} color={Colors.white} />
-              </View>
-            </View>
+            <Image
+              source={require('../assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
             <Text style={styles.appName}>MediFill</Text>
             <Text style={styles.tagline}>Smart medicine management</Text>
           </Animated.View>
@@ -446,23 +446,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xxxl,
   },
-  logoRing: {
-    width: 92,
-    height: 92,
-    borderRadius: 30,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
     marginBottom: Spacing.lg,
     ...Shadow.lg,
-  },
-  logoInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   appName: {
     fontSize: 32,
