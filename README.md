@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/images/icon.png" alt="MediFill Logo" width="120" />
+  <img src="assets/images/logo.png" alt="MediFill Logo" width="120" />
   <h1>MediFill</h1>
   <p><strong>Your intelligent medicine management companion</strong></p>
 
