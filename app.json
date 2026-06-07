@@ -19,6 +19,11 @@
     "android": {
       "package": "com.medifill.app",
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCogyzEhPaUR1JDAAHpYanWTjoSzHeNUSs"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#4F46E5"
