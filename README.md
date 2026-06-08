@@ -169,31 +169,6 @@ All sensitive keys are stored in `.env` (git-ignored). The app uses `EXPO_PUBLIC
 
 ---
 
-## 🌐 Deploying to Netlify
-
-### Option A — CLI (manual deploy)
-
-```bash
-# 1. Build the web export
-npx expo export --platform web
-
-# 2. Deploy to Netlify
-npx netlify-cli deploy --dir=dist --prod
-```
-
-### Option B — Connect GitHub (auto-deploy)
-
-1. Go to [Netlify](https://app.netlify.com) → **Add new site → Import from Git**
-2. Select your `MediFill` repository
-3. Set **Build command:** `npx expo export -p web`
-4. Set **Publish directory:** `dist`
-5. Go to **Site → Environment Variables** and add all keys from your `.env` file
-6. Deploy 🚀
-
-The `netlify.toml` in the repo handles SPA routing and cache headers automatically.
-
----
-
 ## 📁 Project Structure
 
 ```
