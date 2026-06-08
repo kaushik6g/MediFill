@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Clock,
   Pill,
   Check,
+  X,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
@@ -18,6 +19,13 @@ import {
 import Animated, { FadeInDown, FadeInRight, Layout } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMedicineContext } from '../../context/MedicineContext';
+import { sendInstantNotification } from '../../services/notificationService';
+import {
+  upsertScheduleLog,
+  deleteScheduleLog,
+  fetchScheduleLogsForDate,
+} from '../../services/scheduleLogService';
+import { supabase } from '../../config/supabase';
 import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../../constants/theme';
 
 interface ScheduleItem {
@@ -26,8 +34,8 @@ interface ScheduleItem {
   medicines: { id: string; name: string; dosage: string; taken: boolean }[];
 }
 
-const getTakenStorageKey = (date: Date) =>
-  `schedule_taken_${date.toISOString().split('T')[0]}`;
+const getTakenStorageKey    = (date: Date) => `schedule_taken_${date.toISOString().split('T')[0]}`;
+const getRejectedStorageKey = (date: Date) => `schedule_rejected_${date.toISOString().split('T')[0]}`;
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -52,18 +60,62 @@ export default function ScheduleScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekAnchor, setWeekAnchor] = useState(new Date());
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [takenMap, setTakenMap] = useState<Record<string, boolean>>({});
+  const [takenMap, setTakenMap]           = useState<Record<string, boolean>>({});
+  const [rejectedAutoKeys, setRejectedAutoKeys] = useState<Set<string>>(new Set());
+  const notifiedDaysRef = useRef<Set<string>>(new Set());
 
   const dateStr = selectedDate.toISOString().split('T')[0];
   const today = new Date();
   const weekDays = buildWeekDays(weekAnchor);
 
   // ── Taken status ──────────────────────────────────────────────────────────
+  // Strategy: AsyncStorage = fast local cache, Supabase = source of truth.
+  // On load: fetch Supabase data and merge on top of local cache.
+  // On write: update AsyncStorage immediately + fire-and-forget Supabase.
   const loadTakenStatus = useCallback(async () => {
+    // 1. Load local cache first for instant UI
+    let takenLocal: Record<string, boolean> = {};
+    let rejectedLocal: string[] = [];
     try {
-      const stored = await AsyncStorage.getItem(getTakenStorageKey(selectedDate));
-      setTakenMap(stored ? JSON.parse(stored) : {});
-    } catch (_) { setTakenMap({}); }
+      const t = await AsyncStorage.getItem(getTakenStorageKey(selectedDate));
+      if (t) takenLocal = JSON.parse(t);
+    } catch (_) {}
+    try {
+      const r = await AsyncStorage.getItem(getRejectedStorageKey(selectedDate));
+      if (r) rejectedLocal = JSON.parse(r);
+    } catch (_) {}
+    setTakenMap(takenLocal);
+    setRejectedAutoKeys(new Set(rejectedLocal));
+
+    // 2. Fetch from Supabase and merge (cloud wins for conflicts)
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const cloudLogs = await fetchScheduleLogsForDate(user.id, dateStr);
+      if (Object.keys(cloudLogs).length === 0) return;
+
+      const mergedTaken = { ...takenLocal };
+      const mergedRejected = new Set(rejectedLocal);
+
+      for (const [key, status] of Object.entries(cloudLogs)) {
+        // key format from service: `${medicine_id}-${dose_time}`
+        // Full takenMap key: `${medicine_id}-${dose_time}-${dateStr}`
+        const fullKey = `${key}-${dateStr}`;
+        if (status === 'taken') {
+          mergedTaken[fullKey] = true;
+          mergedRejected.delete(fullKey);
+        } else if (status === 'missed') {
+          delete mergedTaken[fullKey];
+          mergedRejected.add(fullKey);
+        }
+      }
+
+      setTakenMap(mergedTaken);
+      setRejectedAutoKeys(mergedRejected);
+      // Persist merged result locally
+      await AsyncStorage.setItem(getTakenStorageKey(selectedDate), JSON.stringify(mergedTaken));
+      await AsyncStorage.setItem(getRejectedStorageKey(selectedDate), JSON.stringify([...mergedRejected]));
+    } catch (_) {}
   }, [dateStr]);
 
   const saveTakenStatus = async (map: Record<string, boolean>) => {
@@ -78,13 +130,27 @@ export default function ScheduleScreen() {
   useEffect(() => {
     if (!medicines.length) { setSchedule([]); return; }
 
-    // Only include medicines that are NOT expired and have stock remaining
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use local YYYY-MM-DD strings for all comparisons — avoids UTC/timezone bugs
+    const toLocalDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const selectedStr   = toLocalDate(selectedDate);          // e.g. "2026-06-07"
+    const todayStr      = toLocalDate(new Date());             // today in local time
+
+    // Only include medicines that:
+    //  1. Are not expired (expiry date >= today)
+    //  2. Have stock remaining
+    //  3. Were added on or before the selected date
     const activeMeds = medicines.filter(med => {
-      const expiry = new Date(med.expiryDate);
-      expiry.setHours(0, 0, 0, 0);
-      return expiry >= today && med.currentQuantity > 0;
+      const expiryStr = toLocalDate(new Date(med.expiryDate));
+      if (expiryStr < todayStr || med.currentQuantity <= 0) return false;
+
+      // Only show from the date the medicine was added onwards
+      if (med.createdAt) {
+        const addedStr = toLocalDate(new Date(med.createdAt));
+        if (selectedStr < addedStr) return false;
+      }
+      return true;
     });
 
     if (!activeMeds.length) { setSchedule([]); return; }
@@ -106,20 +172,53 @@ export default function ScheduleScreen() {
       return ah !== bh ? ah - bh : am - bm;
     });
     setSchedule(sorted);
-  }, [medicines, takenMap, dateStr]);
+  }, [medicines, takenMap, dateStr, selectedDate]);
 
   // ── Toggle taken ──────────────────────────────────────────────────────────
+  // Tapping “Taken” marks any dose manually; tapping again on taken un-marks it.
   const toggleMedicineTaken = async (medicineId: string, time: string) => {
-    const key = `${medicineId}-${time}-${dateStr}`;
-    const newMap = { ...takenMap, [key]: !takenMap[key] };
+    const key           = `${medicineId}-${time}-${dateStr}`;
+    const isManualTaken = !!takenMap[key];
+    const med           = medicines.find(m => m.id === medicineId);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (isManualTaken) {
+      // Taken → not taken: restore stock, remove from DB
+      const newMap = { ...takenMap, [key]: false };
+      setTakenMap(newMap);
+      await saveTakenStatus(newMap);
+      if (user) await deleteScheduleLog(user.id, medicineId, dateStr, time);
+      if (med) {
+        await updateMedicine({ ...med, currentQuantity: Math.min(med.currentQuantity + 1, med.totalQuantity) });
+      }
+      return;
+    }
+
+    // Any “not taken” state (fresh, auto-recorded, or missed) → manually taken
+    if (rejectedAutoKeys.has(key)) {
+      const next = new Set(rejectedAutoKeys);
+      next.delete(key);
+      setRejectedAutoKeys(next);
+      await AsyncStorage.setItem(getRejectedStorageKey(selectedDate), JSON.stringify([...next]));
+    }
+    const newMap = { ...takenMap, [key]: true };
     setTakenMap(newMap);
     await saveTakenStatus(newMap);
-    if (!takenMap[key]) {
-      const med = medicines.find(m => m.id === medicineId);
-      if (med && med.currentQuantity > 0) {
-        await updateMedicine({ ...med, currentQuantity: med.currentQuantity - 1 });
-      }
+    if (user) await upsertScheduleLog(user.id, { medicine_id: medicineId, log_date: dateStr, dose_time: time, status: 'taken' });
+    if (med && med.currentQuantity > 0) {
+      await updateMedicine({ ...med, currentQuantity: med.currentQuantity - 1 });
     }
+  };
+
+  // “Missed” button on auto-recorded dose — user confirms they did NOT take it
+  const markMedicineMissed = async (medicineId: string, time: string) => {
+    const key = `${medicineId}-${time}-${dateStr}`;
+    const next = new Set(rejectedAutoKeys);
+    next.add(key);
+    setRejectedAutoKeys(next);
+    await AsyncStorage.setItem(getRejectedStorageKey(selectedDate), JSON.stringify([...next]));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await upsertScheduleLog(user.id, { medicine_id: medicineId, log_date: dateStr, dose_time: time, status: 'missed' });
   };
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -138,14 +237,59 @@ export default function ScheduleScreen() {
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
   };
 
+  const isToday = isSameDay(selectedDate, today);
+
+  // ── Auto-taken set: only for fully-ended past days ─────────────────────────
+  const autoTakenSet = useMemo(() => {
+    const keys = new Set<string>();
+    if (isToday) return keys;   // never auto-record on the current day
+
+    const toLocalDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const todayStr = toLocalDate(new Date());
+    const selStr   = toLocalDate(selectedDate);
+    if (selStr >= todayStr) return keys;  // future dates ignored
+
+    medicines
+      .filter(med => {
+        if (med.createdAt) {
+          const added = toLocalDate(new Date(med.createdAt));
+          if (selStr < added) return false;
+        }
+        return true;
+      })
+      .forEach(med => {
+        med.timeToTake?.forEach(time => {
+          const [h, m] = time.split(':').map(Number);
+          if (isNaN(h) || isNaN(m)) return;
+          const key = `${med.id}-${time}-${dateStr}`;
+          if (!takenMap[key]) keys.add(key);
+        });
+      });
+    return keys;
+  }, [medicines, isToday, selectedDate, dateStr, takenMap]);
+
+  const hasAutoTaken = autoTakenSet.size > 0;
+
+  // ── Fire one push notification per past-day when auto-recording kicks in ──
+  useEffect(() => {
+    if (autoTakenSet.size > 0 && !notifiedDaysRef.current.has(dateStr)) {
+      notifiedDaysRef.current.add(dateStr);
+      const label = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      sendInstantNotification(
+        'Unlogged Doses Detected',
+        `${autoTakenSet.size} dose${autoTakenSet.size !== 1 ? 's' : ''} from ${label} were not updated. Open the Schedule to mark them as Taken or Missed.`
+      );
+    }
+  }, [autoTakenSet.size, dateStr]);
+
   // ── Stats ─────────────────────────────────────────────────────────────────
   const totalDoses = schedule.reduce((a, s) => a + s.medicines.length, 0);
+  // Only count doses the user explicitly marked as taken
   const takenDoses = schedule.reduce((a, s) => a + s.medicines.filter(m => m.taken).length, 0);
   const pct = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 0;
   const adherenceColor =
     pct === 100 ? Colors.success : pct >= 50 ? Colors.warning : Colors.danger;
-
-  const isToday = isSameDay(selectedDate, today);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -252,40 +396,127 @@ export default function ScheduleScreen() {
 
               {/* Medicine cards */}
               <View style={styles.medCards}>
-                {item.medicines.map(med => (
-                  <Animated.View
-                    key={`${med.id}-${item.time}`}
-                    layout={Layout.springify()}
-                    style={[styles.medCard, med.taken && styles.medCardTaken]}
-                  >
-                    <View style={[styles.medIcon, med.taken && styles.medIconTaken]}>
-                      <Pill size={18} color={med.taken ? Colors.success : Colors.primary} />
-                    </View>
-                    <View style={styles.medInfo}>
-                      <Text style={[styles.medName, med.taken && styles.medNameTaken]} numberOfLines={1}>
-                        {med.name}
-                      </Text>
-                      <Text style={styles.medDosage}>{med.dosage}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.takeBtn, med.taken && styles.takeBtnDone]}
-                      onPress={() => toggleMedicineTaken(med.id, item.time)}
-                      activeOpacity={0.75}
+                {item.medicines.map(med => {
+                  const takenKey  = `${med.id}-${item.time}-${dateStr}`;
+                  // isAutoTaken: past day, not logged, not yet rejected
+                  const isAutoTaken = !med.taken && autoTakenSet.has(takenKey) && !rejectedAutoKeys.has(takenKey);
+                  // isMissed: user explicitly tapped “Missed” (rejected)
+                  const isMissed    = !med.taken && rejectedAutoKeys.has(takenKey);
+                  return (
+                    <Animated.View
+                      key={`${med.id}-${item.time}`}
+                      layout={Layout.springify()}
+                      style={[
+                        styles.medCard,
+                        med.taken   && styles.medCardTaken,
+                        isAutoTaken && styles.medCardAutoTaken,
+                        isMissed    && styles.medCardMissed,
+                      ]}
                     >
-                      {med.taken ? (
-                        <>
-                          <Check size={14} color={Colors.white} />
-                          <Text style={styles.takeBtnText}>Taken</Text>
-                        </>
+                      <View style={[
+                        styles.medIcon,
+                        med.taken   && styles.medIconTaken,
+                        isAutoTaken && styles.medIconAutoTaken,
+                        isMissed    && styles.medIconMissed,
+                      ]}>
+                        <Pill
+                          size={18}
+                          color={
+                            med.taken   ? Colors.success :
+                            isAutoTaken ? Colors.warning :
+                            isMissed    ? Colors.danger :
+                            Colors.primary
+                          }
+                        />
+                      </View>
+                      <View style={styles.medInfo}>
+                        <Text
+                          style={[styles.medName, (med.taken || isMissed) && styles.medNameTaken]}
+                          numberOfLines={1}
+                        >
+                          {med.name}
+                        </Text>
+                        <Text style={styles.medDosage}>{med.dosage}</Text>
+                        {isAutoTaken && (
+                          <Text style={styles.autoTakenBadge}>⚡ Auto-recorded — not updated</Text>
+                        )}
+                        {isMissed && (
+                          <Text style={styles.missedBadge}>✕ Marked as missed</Text>
+                        )}
+                      </View>
+
+                      {/* Action buttons */}
+                      {isAutoTaken ? (
+                        // Two-choice row for auto-recorded doses
+                        <View style={styles.autoBtnRow}>
+                          <TouchableOpacity
+                            style={styles.autoTakenBtn}
+                            onPress={() => toggleMedicineTaken(med.id, item.time)}
+                            activeOpacity={0.8}
+                          >
+                            <Check size={12} color={Colors.white} />
+                            <Text style={styles.autoBtnText}>Taken</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.autoMissedBtn}
+                            onPress={() => markMedicineMissed(med.id, item.time)}
+                            activeOpacity={0.8}
+                          >
+                            <X size={12} color={Colors.white} />
+                            <Text style={styles.autoBtnText}>Missed</Text>
+                          </TouchableOpacity>
+                        </View>
                       ) : (
-                        <Text style={[styles.takeBtnText, { color: Colors.primary }]}>Take</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.takeBtn,
+                            med.taken  && styles.takeBtnDone,
+                            isMissed   && styles.takeBtnMissed,
+                          ]}
+                          onPress={() => toggleMedicineTaken(med.id, item.time)}
+                          activeOpacity={0.75}
+                        >
+                          {med.taken ? (
+                            <>
+                              <Check size={14} color={Colors.white} />
+                              <Text style={styles.takeBtnText}>Taken</Text>
+                            </>
+                          ) : isMissed ? (
+                            <>
+                              <X size={14} color={Colors.white} />
+                              <Text style={styles.takeBtnText}>Missed</Text>
+                            </>
+                          ) : (
+                            <Text style={[styles.takeBtnText, { color: Colors.primary }]}>Take</Text>
+                          )}
+                        </TouchableOpacity>
                       )}
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
+                    </Animated.View>
+                  );
+                })}
               </View>
             </Animated.View>
           ))
+        )}
+        {/* ── Auto-taken disclaimer ── */}
+        {hasAutoTaken && (
+          <Animated.View
+            entering={FadeInDown.delay(300).duration(400)}
+            style={styles.autoTakenNote}
+          >
+            <View style={styles.autoTakenNoteIcon}>
+              <Clock size={14} color={Colors.warning} />
+            </View>
+            <Text style={styles.autoTakenNoteText}>
+              <Text style={styles.autoTakenNoteBold}>Heads up — </Text>
+              {autoTakenSet.size} dose{autoTakenSet.size !== 1 ? 's' : ''} from this day
+              {autoTakenSet.size !== 1 ? ' were' : ' was'} not updated before the day ended.
+              Please mark {autoTakenSet.size !== 1 ? 'them' : 'it'} as{' '}
+              <Text style={styles.autoTakenNoteBold}>Taken</Text>{' '}or{' '}
+              <Text style={styles.autoTakenNoteBold}>Missed</Text>{' '}
+              to keep your records accurate.
+            </Text>
+          </Animated.View>
         )}
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -409,6 +640,90 @@ const styles = StyleSheet.create({
   medCardTaken: {
     backgroundColor: Colors.successLight,
     borderColor: Colors.success,
+  },
+  medCardAutoTaken: {
+    backgroundColor: '#FFF8E7',
+    borderColor: Colors.warning,
+  },
+  medIconAutoTaken: { backgroundColor: '#FFF8E7' },
+  autoTakenBadge: {
+    fontSize: 10,
+    color: Colors.warning,
+    fontWeight: '700',
+    marginTop: 3,
+    letterSpacing: 0.2,
+  },
+  // Missed state card
+  medCardMissed: {
+    backgroundColor: '#FFF1F0',
+    borderColor: Colors.danger,
+    opacity: 0.85,
+  },
+  medIconMissed: { backgroundColor: '#FFF1F0' },
+  missedBadge: {
+    fontSize: 10,
+    color: Colors.danger,
+    fontWeight: '700',
+    marginTop: 3,
+    letterSpacing: 0.2,
+  },
+  // Two-button row for auto-recorded doses
+  autoBtnRow: {
+    flexDirection: 'column',
+    gap: 5,
+    flexShrink: 0,
+  },
+  autoTakenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.success,
+  },
+  autoMissedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.danger,
+  },
+  autoBtnText: { fontSize: 10, fontWeight: '700', color: Colors.white },
+  takeBtnMissed: { backgroundColor: Colors.danger },
+  autoTakenNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF8E7',
+    borderRadius: 14,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    gap: Spacing.sm,
+  },
+  autoTakenNoteIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.warningLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  autoTakenNoteText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  autoTakenNoteBold: {
+    fontWeight: '700',
+    color: Colors.warning,
   },
   medIcon: {
     width: 38, height: 38, borderRadius: 12,

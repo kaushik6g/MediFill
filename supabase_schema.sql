@@ -96,3 +96,37 @@ CREATE POLICY "Users can manage own medicines"
 -- Enable realtime for the medicines table
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.medicines;
+
+-- ── Schedule logs table ───────────────────────────────────────────────────────
+-- Tracks per-dose taken / missed / auto status for each user per day.
+
+CREATE TABLE IF NOT EXISTS public.schedule_logs (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  medicine_id  TEXT NOT NULL,
+  log_date     DATE NOT NULL,           -- e.g. 2026-06-07
+  dose_time    TEXT NOT NULL,           -- e.g. "08:00"
+  status       TEXT NOT NULL            -- 'taken' | 'missed'
+    CHECK (status IN ('taken', 'missed')),
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, medicine_id, log_date, dose_time)  -- one record per dose per day
+);
+
+CREATE INDEX IF NOT EXISTS schedule_logs_user_date_idx
+  ON public.schedule_logs (user_id, log_date);
+
+-- ── RLS — schedule_logs ───────────────────────────────────────────────────────
+
+ALTER TABLE public.schedule_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own schedule logs" ON public.schedule_logs;
+
+CREATE POLICY "Users can manage own schedule logs"
+  ON public.schedule_logs FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Enable realtime for schedule_logs too
+ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_logs;
+

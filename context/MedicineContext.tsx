@@ -274,7 +274,15 @@ export const MedicineProvider: React.FC<{
 
   const updateMedicine = async (updatedMedicine: Medicine) => {
     const old = medicines.find(m => m.id === updatedMedicine.id);
-    if (old?.timeToTake?.length) cancelMedicineReminders(old.id, old.timeToTake);
+
+    // Only cancel/reschedule push notifications when the reminder times actually change
+    const timesChanged =
+      JSON.stringify(old?.timeToTake ?? []) !==
+      JSON.stringify(updatedMedicine.timeToTake ?? []);
+
+    if (timesChanged && old?.timeToTake?.length) {
+      cancelMedicineReminders(old.id, old.timeToTake);
+    }
 
     const updated = medicines.map(m => m.id === updatedMedicine.id ? updatedMedicine : m);
     setMedicines(updated);
@@ -284,7 +292,7 @@ export const MedicineProvider: React.FC<{
       saveMedicineToCloud(firebaseUid, updatedMedicine);
     }
 
-    if (updatedMedicine.timeToTake?.length) {
+    if (timesChanged && updatedMedicine.timeToTake?.length) {
       scheduleMedicineReminders({
         medicineId: updatedMedicine.id,
         medicineName: updatedMedicine.name,
