@@ -97,7 +97,7 @@ function AlertDrawer({
     return <AlertCircle size={18} color={color} />;
   };
 
-  if (!visible && slideAnim._value === -500) return null;
+  if (!visible) return null;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -277,7 +277,7 @@ const drawerStyles = StyleSheet.create({
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { medicines, alerts, loadMedicines, markAlertAsRead, activeUser } =
+  const { medicines, alerts, loadMedicines, markAlertAsRead, dismissAlert, dismissAllAlerts, activeUser } =
     useMedicineContext();
   const { profile } = useAuth();
   const [refreshing, setRefreshing]       = useState(false);
@@ -313,8 +313,8 @@ export default function HomeScreen() {
 
   const unreadAlerts = alerts.filter((a) => !a.read);
 
-  const handleDismiss = (alertId: string) => markAlertAsRead(alertId);
-  const handleDismissAll = () => alerts.forEach((a) => markAlertAsRead(a.id));
+  const handleDismiss    = (alertId: string) => dismissAlert(alertId);
+  const handleDismissAll = () => dismissAllAlerts();
 
   // Quick stats
   const totalMeds = medicines.length;

@@ -12,6 +12,7 @@ import {
   Switch,
   ActivityIndicator,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
@@ -227,19 +228,33 @@ export default function ProfileScreen() {
     : '';
 
   // ── Handlers ────────────────────────────────────────────────────────────
+  const doSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } catch {
+      if (Platform.OS === 'web') {
+        window.alert('Failed to sign out. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to sign out. Please try again.');
+      }
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out', style: 'destructive',
-        onPress: async () => {
-          setSigningOut(true);
-          try { await signOut(); }
-          catch { Alert.alert('Error', 'Failed to sign out. Please try again.'); }
-          finally { setSigningOut(false); }
-        },
-      },
-    ]);
+    if (Platform.OS === 'web') {
+      // Alert.alert is a no-op on web — use the native browser confirm dialog
+      if (window.confirm('Are you sure you want to sign out?')) {
+        doSignOut();
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: doSignOut },
+      ]);
+    }
   };
 
   const handleUpdateName = async () => {

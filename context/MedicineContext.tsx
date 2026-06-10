@@ -56,6 +56,8 @@ interface MedicineContextType {
   deleteMedicine: (id: string) => Promise<void>;
   loadMedicines: () => Promise<void>;
   markAlertAsRead: (id: string) => Promise<void>;
+  dismissAlert: (id: string) => Promise<void>;
+  dismissAllAlerts: () => Promise<void>;
   getInteractionAlerts: () => Alert[];
   getExpiryAlerts: () => Alert[];
   getStockAlerts: () => Alert[];
@@ -81,8 +83,8 @@ function profileToUser(profile: UserProfile): User {
 
 // ── Per-profile storage keys ───────────────────────────────────────────────────
 const medicinesKey = (profileId: string) => `medicines_${profileId}`;
-const alertsKey    = (profileId: string) => `alerts_${profileId}`;
-const alertIdsKey  = (profileId: string) => `processedAlertIds_${profileId}`;
+const alertsKey = (profileId: string) => `alerts_${profileId}`;
+const alertIdsKey = (profileId: string) => `processedAlertIds_${profileId}`;
 
 const MedicineContext = createContext<MedicineContextType | undefined>(undefined);
 
@@ -182,7 +184,7 @@ export const MedicineProvider: React.FC<{
         const local: Medicine[] = JSON.parse(stored);
         if (local.length > 0) {
           setIsSyncing(true);
-          await saveAllMedicinesToCloud(firebaseUid, local);
+          await saveAllMedicinesToCloud(firebaseUid, local as unknown as any[]);
           setIsSyncing(false);
         }
       }
@@ -192,7 +194,7 @@ export const MedicineProvider: React.FC<{
       firebaseUid,
       cloudMedicines => {
         if (cloudMedicines.length > 0 && activeUser?.id === 'auth') {
-          setMedicines(cloudMedicines as Medicine[]);
+          setMedicines(cloudMedicines as unknown as Medicine[]);
           AsyncStorage.setItem(medicinesKey('auth'), JSON.stringify(cloudMedicines));
         }
       },
@@ -259,7 +261,7 @@ export const MedicineProvider: React.FC<{
     await saveMedicines(updated);
 
     if (firebaseUid && activeUser?.id === 'auth') {
-      saveMedicineToCloud(firebaseUid, med);
+      saveMedicineToCloud(firebaseUid, med as unknown as any);
     }
 
     if (medicine.timeToTake?.length) {
@@ -289,7 +291,7 @@ export const MedicineProvider: React.FC<{
     await saveMedicines(updated);
 
     if (firebaseUid && activeUser?.id === 'auth') {
-      saveMedicineToCloud(firebaseUid, updatedMedicine);
+      saveMedicineToCloud(firebaseUid, updatedMedicine as unknown as any);
     }
 
     if (timesChanged && updatedMedicine.timeToTake?.length) {
@@ -328,6 +330,19 @@ export const MedicineProvider: React.FC<{
     const updated = alerts.map(a => a.id === id ? { ...a, read: true } : a);
     setAlerts(updated);
     await saveAlerts(updated);
+  };
+
+  // Remove a single alert entirely
+  const dismissAlert = async (id: string) => {
+    const updated = alerts.filter(a => a.id !== id);
+    setAlerts(updated);
+    await saveAlerts(updated);
+  };
+
+  // Remove ALL alerts at once
+  const dismissAllAlerts = async () => {
+    setAlerts([]);
+    await saveAlerts([]);
   };
 
   // ── User management ───────────────────────────────────────────────────────
@@ -528,6 +543,8 @@ export const MedicineProvider: React.FC<{
         deleteMedicine,
         loadMedicines,
         markAlertAsRead,
+        dismissAlert,
+        dismissAllAlerts,
         getInteractionAlerts,
         getExpiryAlerts,
         getStockAlerts,
